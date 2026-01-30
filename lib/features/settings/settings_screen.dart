@@ -70,22 +70,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     ),
                   ),
                   ListTile(
-                    title: const Text('主题'),
-                    subtitle: Text(_theme),
-                    trailing: DropdownButton<String>(
-                      value: _theme,
-                      items: const [
-                        DropdownMenuItem(value: 'default', child: Text('默认')),
-                        DropdownMenuItem(value: 'solarized', child: Text('Solarized')),
-                        DropdownMenuItem(value: 'dracula', child: Text('Dracula')),
-                        DropdownMenuItem(value: 'monokai', child: Text('Monokai')),
-                      ],
-                      onChanged: (value) {
-                        setState(() {
-                          _theme = value!;
-                        });
-                      },
-                    ),
+                    title: const Text('主题管理'),
+                    subtitle: const Text('管理终端主题'),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () {
+                      Navigator.of(context).pushNamed('/themes');
+                    },
                   ),
                 ],
               ),
@@ -107,19 +97,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ),
                   const SizedBox(height: 16),
                   ListTile(
-                    title: const Text('SSH 连接'),
-                    subtitle: const Text('管理 SSH 连接配置'),
+                    title: const Text('连接管理'),
+                    subtitle: const Text('管理所有连接'),
                     trailing: const Icon(Icons.chevron_right),
                     onTap: () {
-                      Navigator.of(context).pushNamed('/ssh');
-                    },
-                  ),
-                  ListTile(
-                    title: const Text('WebSocket 连接'),
-                    subtitle: const Text('管理 WebSocket 连接'),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () {
-                      Navigator.of(context).pushNamed('/websocket');
+                      Navigator.of(context).pushNamed('/connections');
                     },
                   ),
                 ],

@@ -171,6 +171,13 @@ class _SshConnectionsScreenState extends ConsumerState<SshConnectionsScreen> {
                                   ),
                                 ),
                                 const PopupMenuItem(
+                                  value: 'file_transfer',
+                                  child: ListTile(
+                                    leading: Icon(Icons.folder),
+                                    title: Text('文件传输'),
+                                  ),
+                                ),
+                                const PopupMenuItem(
                                   value: 'edit',
                                   child: ListTile(
                                     leading: Icon(Icons.edit),
@@ -196,6 +203,9 @@ class _SshConnectionsScreenState extends ConsumerState<SshConnectionsScreen> {
                                 switch (value) {
                                   case 'connect':
                                     context.push('/ssh/terminal/${connection.id}');
+                                    break;
+                                  case 'file_transfer':
+                                    context.push('/ssh/file-transfer/${connection.id}');
                                     break;
                                   case 'edit':
                                     context.push('/ssh/edit/${connection.id}');

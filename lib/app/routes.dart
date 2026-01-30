@@ -8,6 +8,10 @@ import '../features/ssh/ssh_terminal_screen.dart';
 import '../features/websocket/websocket_connections_screen.dart';
 import '../features/websocket/websocket_connection_form_screen.dart';
 import '../features/websocket/websocket_terminal_screen.dart';
+import '../features/themes/themes_screen.dart';
+import '../features/themes/theme_editor_screen.dart';
+import '../features/connections/connections_screen.dart';
+import '../features/file_transfer/file_transfer_screen.dart';
 
 final appRoutes = [
   GoRoute(
@@ -17,6 +21,10 @@ final appRoutes = [
   GoRoute(
     path: '/settings',
     builder: (context, state) => const SettingsScreen(),
+  ),
+  GoRoute(
+    path: '/connections',
+    builder: (context, state) => const ConnectionsScreen(),
   ),
   GoRoute(
     path: '/ssh',
@@ -41,6 +49,13 @@ final appRoutes = [
     },
   ),
   GoRoute(
+    path: '/ssh/file-transfer/:id',
+    builder: (context, state) {
+      final id = state.pathParameters['id']!;
+      return FileTransferScreen(connectionId: id);
+    },
+  ),
+  GoRoute(
     path: '/websocket',
     builder: (context, state) => const WebSocketConnectionsScreen(),
   ),
@@ -60,6 +75,21 @@ final appRoutes = [
     builder: (context, state) {
       final id = state.pathParameters['id']!;
       return WebSocketTerminalScreen(connectionId: id);
+    },
+  ),
+  GoRoute(
+    path: '/themes',
+    builder: (context, state) => const ThemesScreen(),
+  ),
+  GoRoute(
+    path: '/themes/new',
+    builder: (context, state) => const ThemeEditorScreen(),
+  ),
+  GoRoute(
+    path: '/themes/edit/:id',
+    builder: (context, state) {
+      final id = state.pathParameters['id']!;
+      return ThemeEditorScreen(themeId: id);
     },
   ),
 ];
