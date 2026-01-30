@@ -1,0 +1,61 @@
+include: package:flutter_lints/flutter.yaml
+
+analyzer:
+  exclude:
+    - "**/*.g.dart"
+    - "**/*.freezed.dart"
+    - "**/*.gr.dart"
+    - "**/*.gen.dart"
+    - "build/**"
+    - ".dart_tool/**"
+    - ".pub/**"
+  language:
+    strict-casts: true
+    strict-inference: true
+    strict-raw-types: true
+
+linter:
+  rules:
+    # Style
+    - always_declare_return_types
+    - always_require_non_null_named_parameters
+    - annotate_overrides
+    - avoid_empty_else
+    - avoid_print
+    - avoid_relative_lib_imports
+    - avoid_return_types_on_setters
+    - avoid_single_cascade_in_expression_statements
+    - avoid_types_as_parameter_names
+    - camel_case_types
+    - constant_identifier_names
+    - empty_statements
+    - library_names
+    - library_prefixes
+    - no_duplicate_case_values
+    - non_constant_identifier_names
+    - prefer_const_constructors
+    - prefer_const_declarations
+    - prefer_final_fields
+    - prefer_final_locals
+    - slash_for_doc_comments
+    - type_init_formals
+    - unnecessary_brace_in_string_interps
+    - unnecessary_const
+    - unnecessary_new
+    - unnecessary_null_checks
+    - unnecessary_this
+    - use_key_in_widget_constructors
+    - use_rethrow_when_possible
+    - valid_regexps
+
+    # Documentation
+    - public_member_api_docs
+
+    # Flutter specific
+    - avoid_unnecessary_containers
+    - prefer_const_constructors_in_immutables
+    - prefer_const_literals_to_create_immutables
+    - prefer_typing_uninitialized_variables
+    - sized_box_for_whitespace
+    - use_full_hex_values_for_flutter_colors
+    - use_key_in_widget_constructors
