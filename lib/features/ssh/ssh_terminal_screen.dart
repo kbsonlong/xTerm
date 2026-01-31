@@ -228,17 +228,8 @@ class _SshTerminalScreenState extends ConsumerState<SshTerminalScreen> {
             child: Padding(
               padding: const EdgeInsets.all(8.0),
               child: TerminalView(
-                terminal: terminal,
+                terminal,
                 controller: controller,
-                autofocus: true,
-                style: TerminalStyle(
-                  fontSize: 14,
-                  fontFamily: 'RobotoMono',
-                  foreground: Colors.white,
-                  background: Colors.black,
-                  cursor: Colors.green,
-                  selection: Colors.blue.withOpacity(0.5),
-                ),
               ),
             ),
           ),

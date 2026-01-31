@@ -20,7 +20,7 @@ class XTermApp extends StatelessWidget {
   }
 
   GoRouter get _router => GoRouter(
-        routes: $appRoutes,
+        routes: appRoutes,
         initialLocation: '/',
         debugLogDiagnostics: false,
       );

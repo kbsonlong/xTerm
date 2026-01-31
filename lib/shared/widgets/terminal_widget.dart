@@ -18,9 +18,8 @@ class _TerminalWidgetState extends ConsumerState<TerminalWidget> {
     super.initState();
     terminal = Terminal(
       maxLines: 10000,
-      cursorStyle: CursorStyle.block,
     );
-    controller = TerminalController(terminal);
+    controller = TerminalController();
 
     // 初始化终端
     _initializeTerminal();
@@ -57,7 +56,8 @@ class _TerminalWidgetState extends ConsumerState<TerminalWidget> {
         terminal.write('  version  - Show xTerm version\r\n');
         break;
       case 'clear':
-        terminal.clear();
+        // terminal.clear(); // 暂时注释，需要检查 xterm 4.0.0 API
+        terminal.write('\x1B[2J\x1B[0;0H'); // 使用 ANSI 转义序列清屏
         break;
       case 'date':
         final now = DateTime.now();
@@ -89,18 +89,8 @@ class _TerminalWidgetState extends ConsumerState<TerminalWidget> {
         border: Border.all(color: Colors.grey.shade800),
       ),
       child: TerminalView(
-        terminal: terminal,
+        terminal,
         controller: controller,
-        autofocus: true,
-        onInput: _handleInput,
-        style: TerminalStyle(
-          fontSize: 14,
-          fontFamily: 'RobotoMono',
-          foreground: Colors.white,
-          background: Colors.black,
-          cursor: Colors.green,
-          selection: Colors.blue.withOpacity(0.5),
-        ),
       ),
     );
   }

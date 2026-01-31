@@ -1,4 +1,4 @@
-name: xterm
+name: xterm_app
 description: A cross-platform terminal application for iOS, Android and macOS
 publish_to: 'none'
 version: 1.0.0+1
@@ -18,8 +18,8 @@ dependencies:
   responsive_framework: ^1.0.0
 
   # Terminal
-  xterm: ^4.4.0
-  ssh2: ^0.14.0
+  xterm: ^4.0.0
+  ssh2: any
   web_socket_channel: ^2.4.3
 
   # Utilities
@@ -48,12 +48,12 @@ flutter:
     - assets/images/
     - assets/fonts/
 
-  fonts:
-    - family: RobotoMono
-      fonts:
-        - asset: assets/fonts/RobotoMono-Regular.ttf
-        - asset: assets/fonts/RobotoMono-Bold.ttf
-          weight: 700
+  # fonts:
+  #   - family: RobotoMono
+  #     fonts:
+  #       - asset: assets/fonts/RobotoMono-Regular.ttf
+  #       - asset: assets/fonts/RobotoMono-Bold.ttf
+  #         weight: 700
 
 flutter_launcher_icons:
   android: true

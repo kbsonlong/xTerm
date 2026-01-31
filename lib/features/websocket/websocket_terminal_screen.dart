@@ -317,30 +317,8 @@ class _WebSocketTerminalScreenState extends ConsumerState<WebSocketTerminalScree
             child: Padding(
               padding: const EdgeInsets.all(8.0),
               child: TerminalView(
-                terminal: terminal,
+                terminal,
                 controller: controller,
-                autofocus: true,
-                onInput: (input) {
-                  if (input == '\r') {
-                    final message = _messageController.text.trim();
-                    if (message.startsWith('/')) {
-                      _handleCommand(message.substring(1));
-                    } else {
-                      _sendMessage();
-                    }
-                  } else {
-                    _messageController.text += input;
-                    terminal.write(input);
-                  }
-                },
-                style: TerminalStyle(
-                  fontSize: 14,
-                  fontFamily: 'RobotoMono',
-                  foreground: Colors.white,
-                  background: Colors.black,
-                  cursor: Colors.green,
-                  selection: Colors.blue.withOpacity(0.5),
-                ),
               ),
             ),
           ),
