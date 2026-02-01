@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/models/auth_method.dart';
 import '../../core/models/ssh_connection.dart';
 import '../../core/repositories/ssh_repository.dart';
+import '../../core/services/secure_otp_storage.dart';
+import 'widgets/otp_config_form.dart';
 
 class SshConnectionFormScreen extends ConsumerStatefulWidget {
   final String? connectionId;
@@ -27,6 +30,12 @@ class _SshConnectionFormScreenState extends ConsumerState<SshConnectionFormScree
   bool _isLoading = false;
   bool _usePassword = true;
   SshConnection? _existingConnection;
+  SecureOtpStorage? _otpStorage;
+  SshConnection _currentConnection = SshConnection.create(
+    name: '',
+    host: '',
+    username: '',
+  );
 
   @override
   void initState() {
@@ -47,6 +56,7 @@ class _SshConnectionFormScreenState extends ConsumerState<SshConnectionFormScree
 
       if (connection != null) {
         _existingConnection = connection;
+        _currentConnection = connection;
         _nameController.text = connection.name;
         _hostController.text = connection.host;
         _portController.text = connection.port.toString();
@@ -54,7 +64,8 @@ class _SshConnectionFormScreenState extends ConsumerState<SshConnectionFormScree
         _passwordController.text = connection.password ?? '';
         _privateKeyPathController.text = connection.privateKeyPath ?? '';
         _passphraseController.text = connection.passphrase ?? '';
-        _usePassword = connection.password != null;
+        _usePassword = connection.authMethod == AuthMethod.password ||
+                      connection.authMethod == AuthMethod.passwordWithOtp;
       }
     } finally {
       setState(() {
@@ -72,8 +83,22 @@ class _SshConnectionFormScreenState extends ConsumerState<SshConnectionFormScree
 
     try {
       final repository = ref.read(sshRepositoryProvider);
+      _otpStorage ??= SecureOtpStorage();
 
-      final connection = SshConnection.create(
+      // 确定认证方式
+      AuthMethod authMethod;
+      if (_usePassword) {
+        authMethod = _currentConnection.useOtp
+            ? AuthMethod.passwordWithOtp
+            : AuthMethod.password;
+      } else {
+        authMethod = _currentConnection.useOtp
+            ? AuthMethod.keyWithOtp
+            : AuthMethod.privateKey;
+      }
+
+      // 创建或更新连接
+      final connection = _currentConnection.copyWith(
         name: _nameController.text.trim(),
         host: _hostController.text.trim(),
         port: int.tryParse(_portController.text.trim()) ?? 22,
@@ -81,13 +106,30 @@ class _SshConnectionFormScreenState extends ConsumerState<SshConnectionFormScree
         password: _usePassword ? _passwordController.text.trim() : null,
         privateKeyPath: !_usePassword ? _privateKeyPathController.text.trim() : null,
         passphrase: !_usePassword ? _passphraseController.text.trim() : null,
+        authMethod: authMethod,
       );
 
+      // 处理 OTP 密钥存储
+      if (connection.useOtp && connection.otpConfig?.secret != null) {
+        final secretId = await _otpStorage!.storeOtpSecret(
+          connectionId: connection.id,
+          secret: connection.otpConfig!.secret!,
+          config: connection.otpConfig!,
+        );
+
+        connection.otpConfig = connection.otpConfig!.copyWith(
+          secret: null, // 清除明文密钥
+          secretId: secretId,
+        );
+      }
+
+      // 如果是更新现有连接，保留原有属性
       if (_existingConnection != null) {
         connection.id = _existingConnection!.id;
         connection.createdAt = _existingConnection!.createdAt;
         connection.lastConnectedAt = _existingConnection!.lastConnectedAt;
         connection.isFavorite = _existingConnection!.isFavorite;
+        connection.extraConfig = _existingConnection!.extraConfig;
       }
 
       await repository.saveConnection(connection);
@@ -122,6 +164,12 @@ class _SshConnectionFormScreenState extends ConsumerState<SshConnectionFormScree
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('文件选择功能待实现')),
     );
+  }
+
+  void _updateCurrentConnection(SshConnection connection) {
+    setState(() {
+      _currentConnection = connection;
+    });
   }
 
   @override
@@ -237,51 +285,10 @@ class _SshConnectionFormScreenState extends ConsumerState<SshConnectionFormScree
                       },
                     ),
                     const SizedBox(height: 16),
-                    Card(
-                      child: Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              '认证方式',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: RadioListTile<bool>(
-                                    title: const Text('密码认证'),
-                                    value: true,
-                                    groupValue: _usePassword,
-                                    onChanged: (value) {
-                                      setState(() {
-                                        _usePassword = value!;
-                                      });
-                                    },
-                                  ),
-                                ),
-                                Expanded(
-                                  child: RadioListTile<bool>(
-                                    title: const Text('密钥认证'),
-                                    value: false,
-                                    groupValue: _usePassword,
-                                    onChanged: (value) {
-                                      setState(() {
-                                        _usePassword = value!;
-                                      });
-                                    },
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
+                    OtpConfigForm(
+                      connection: _currentConnection,
+                      onConnectionUpdated: _updateCurrentConnection,
+                      otpStorage: _otpStorage,
                     ),
                     const SizedBox(height: 16),
                     if (_usePassword)

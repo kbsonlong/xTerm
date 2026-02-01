@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -6,7 +8,11 @@ import 'package:xterm/xterm.dart';
 import '../../core/models/ssh_connection.dart';
 import '../../core/providers/ssh_provider.dart';
 import '../../core/repositories/ssh_repository.dart';
+import '../../core/services/otp_service.dart';
+import '../../core/services/secure_otp_storage.dart';
+import '../../core/services/ssh_auth_manager.dart';
 import '../../shared/widgets/terminal_widget.dart';
+import 'widgets/otp_input_dialog.dart';
 
 class SshTerminalScreen extends ConsumerStatefulWidget {
   final String connectionId;
@@ -23,13 +29,30 @@ class _SshTerminalScreenState extends ConsumerState<SshTerminalScreen> {
   SshConnection? _connection;
   bool _isConnecting = false;
   String? _errorMessage;
+  SshAuthManager? _authManager;
+  StreamSubscription<AuthState>? _authStateSubscription;
+  StreamSubscription<String?>? _otpCodeSubscription;
+  SecureOtpStorage? _otpStorage;
+  OtpService? _otpService;
+  String? _currentOtpCode;
+  bool _showOtpDialog = false;
 
   @override
   void initState() {
     super.initState();
     terminal = Terminal(maxLines: 10000);
     controller = TerminalController(terminal);
+    _otpStorage = SecureOtpStorage();
+    _otpService = OtpService();
     _loadConnection();
+  }
+
+  @override
+  void dispose() {
+    _authStateSubscription?.cancel();
+    _otpCodeSubscription?.cancel();
+    _authManager?.dispose();
+    super.dispose();
   }
 
   Future<void> _loadConnection() async {
@@ -55,16 +78,37 @@ class _SshTerminalScreenState extends ConsumerState<SshTerminalScreen> {
     setState(() {
       _isConnecting = true;
       _errorMessage = null;
+      _showOtpDialog = false;
     });
 
     terminal.write('正在连接到 ${_connection!.host}:${_connection!.port}...\r\n');
 
     try {
+      // 初始化认证管理器
+      _authManager?.dispose();
+      _authStateSubscription?.cancel();
+      _otpCodeSubscription?.cancel();
+
+      final sshService = ref.read(sshServiceProvider);
+      _authManager = SshAuthManager(
+        connection: _connection!,
+        otpStorage: _otpStorage!,
+        otpService: _otpService!,
+        sshService: sshService,
+      );
+
+      // 监听认证状态
+      _authStateSubscription = _authManager!.stateStream.listen(_handleAuthState);
+      _otpCodeSubscription = _authManager!.otpCodeStream.listen(_handleOtpCode);
+
+      // 开始认证
+      await _authManager!.authenticate();
+
+      // 认证成功后，设置 SSH 连接
       final notifier = ref.read(sshConnectionNotifierProvider.notifier);
       await notifier.connect(_connection!);
 
       // 监听 SSH 输出
-      final sshService = ref.read(sshServiceProvider);
       sshService.outputStream.listen((data) {
         terminal.write(data);
       });
@@ -94,6 +138,75 @@ class _SshTerminalScreenState extends ConsumerState<SshTerminalScreen> {
       });
       terminal.write('连接失败: $e\r\n');
     }
+  }
+
+  void _handleAuthState(AuthState state) {
+    switch (state) {
+      case AuthState.initial:
+        terminal.write('开始认证...\r\n');
+        break;
+      case AuthState.primaryAuth:
+        terminal.write('执行主认证...\r\n');
+        break;
+      case AuthState.otpRequired:
+        terminal.write('需要 OTP 二次认证...\r\n');
+        _showOtpInputDialog();
+        break;
+      case AuthState.otpVerifying:
+        terminal.write('验证 OTP 代码...\r\n');
+        break;
+      case AuthState.completed:
+        terminal.write('认证成功！\r\n');
+        break;
+      case AuthState.error:
+        terminal.write('认证失败\r\n');
+        break;
+    }
+  }
+
+  void _handleOtpCode(String? otpCode) {
+    setState(() {
+      _currentOtpCode = otpCode;
+    });
+  }
+
+  void _showOtpInputDialog() {
+    if (_showOtpDialog || _connection == null) return;
+
+    setState(() => _showOtpDialog = true);
+
+    final remainingSeconds = _authManager?.getOtpRemainingSeconds() ?? 30;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => OtpInputDialog(
+        connectionName: _connection!.name,
+        timeRemaining: remainingSeconds,
+        currentOtpCode: _currentOtpCode,
+        onOtpSubmitted: _handleOtpSubmitted,
+        onCancel: _handleOtpCancelled,
+        onUseCurrentCode: () {
+          if (_currentOtpCode != null) {
+            _handleOtpSubmitted(_currentOtpCode!);
+          }
+        },
+      ),
+    ).then((_) {
+      if (mounted) {
+        setState(() => _showOtpDialog = false);
+      }
+    });
+  }
+
+  void _handleOtpSubmitted(String otpCode) {
+    _authManager?.provideOtpInput(otpCode);
+    Navigator.of(context).pop();
+  }
+
+  void _handleOtpCancelled() {
+    _authManager?.cancelOtpInput();
+    Navigator.of(context).pop();
   }
 
   Future<void> _disconnect() async {
